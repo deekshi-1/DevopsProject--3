@@ -1,18 +1,45 @@
+defaultRules:
+  create: true
+  rules:
+    # Disable noisy default rules
+    alertmanager: false
+    etcd: false
+    kubeControllerManager: false
+    kubeScheduler: false
+    kubeProxy: false
+    kubeApiserverAvailability: false
+    kubeApiserverBurnrate: false
+    kubeApiserverSlos: false
+    kubePrometheusGeneral: false
+    kubePrometheusNodeRecording: false
+    kubernetesSystem: false
+    kubernetesSystemControllerManager: false
+    kubernetesSystemScheduler: false
+    node: false
+    nodeExporterRecording: false
+    prometheus: false
+    prometheusOperator: false
+
+
 alertmanager:
   enabled: true
+
 
 kubeStateMetrics:
   enabled: true
 
+
 nodeExporter:
   enabled: true
+
 
 server:
   persistentVolume:
     enabled: false
 
-serverFiles:
-  alerts:
+
+additionalPrometheusRulesMap:
+  capstone-alerts:
     groups:
       - name: capstone-alerts
         rules:
