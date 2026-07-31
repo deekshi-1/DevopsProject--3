@@ -1,0 +1,60 @@
+{
+  "title": "Application Metrics",
+  "schemaVersion": 38,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Pod CPU Usage",
+      "targets": [
+        {
+          "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~'.*',container!=''}[5m])) by (pod)"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pod Memory Usage",
+      "targets": [
+        {
+          "expr": "sum(container_memory_working_set_bytes{container!=''}) by (pod)"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Running Pods",
+      "targets": [
+        {
+          "expr": "count(kube_pod_status_phase{phase='Running'})"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Pod Restarts",
+      "targets": [
+        {
+          "expr": "sum(kube_pod_container_status_restarts_total)"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "NGINX Connections",
+      "targets": [
+        {
+          "expr": "nginx_connections_active"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "NGINX Requests/sec",
+      "targets": [
+        {
+          "expr": "rate(nginx_http_requests_total[1m])"
+        }
+      ]
+    }
+  ]
+}
