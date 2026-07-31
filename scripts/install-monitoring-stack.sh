@@ -21,9 +21,9 @@ kubectl create namespace monitoring \
 
 echo "Deploying Prometheus..."
 
-helm upgrade --install prometheus \
-prometheus-community/prometheus \
---namespace monitoring \
+helm upgrade --install kube-prometheus-stack \
+prometheus-community/kube-prometheus-stack \
+-n monitoring \
 -f monitoring/prometheus/prometheus-values.yaml
 
 
