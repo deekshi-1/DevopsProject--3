@@ -16,7 +16,12 @@ pipeline {
         stage('Secret Detection - Gitleaks') {
             steps {
                 sh '''
-                    bash scripts/git-leaks.sh
+                    gitleaks detect \
+                        --source . \
+                        --no-git \
+                        --verbose \
+                        --exit-code 1 \
+                        --no-banner
                 '''
             }
         }
