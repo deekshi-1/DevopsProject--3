@@ -1,0 +1,140 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "deekshithc1/nginx-capstone"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Secret Detection - Gitleaks') {
+            steps {
+                sh '''
+                    bash scripts/git-leaks.sh
+                '''
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool "SonarScanner"
+
+                    withSonarQubeEnv("SonarQube") {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 3, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh """
+                    docker build \
+                    -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                """
+            }
+        }
+
+        stage('Image Scan (Trivy)') {
+            steps {
+                sh """
+                    trivy image \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 1 \
+                    ${IMAGE_NAME}:${BUILD_NUMBER}
+                """
+            }
+        }
+
+        stage('Push Image to Docker Hub') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-creds',
+                        usernameVariable: 'DOCKER_USERNAME',
+                        passwordVariable: 'DOCKER_PASSWORD'
+                    )
+                ]) {
+                    sh '''
+                        echo "$DOCKER_PASSWORD" | docker login \
+                        -u "$DOCKER_USERNAME" \
+                        --password-stdin
+
+                        docker tag $IMAGE_NAME:$BUILD_NUMBER $IMAGE_NAME:latest
+                        docker push $IMAGE_NAME:$BUILD_NUMBER
+                        docker push $IMAGE_NAME:latest
+
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('Deploy Monitoring Stack') {
+            steps {
+                sh '''
+                    chmod +x scripts/install-monitoring-stack.sh
+                    ./scripts/install-monitoring-stack.sh
+                '''
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')
+                ]) {
+                    sh '''
+                        kubectl apply -f k8s/
+
+                        kubectl set image deployment/capstone-nginx-app \
+                        nginx-container=$IMAGE_NAME:latest
+                    '''
+                }
+            }
+        }
+
+        stage('Rollout Verification') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')
+                ]) {
+                    sh '''
+                        kubectl rollout status deployment/capstone-nginx-app
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+
+        success {
+            echo "Pipeline completed successfully."
+        }
+
+        failure {
+            echo "Pipeline failed."
+        }
+    }
+}
