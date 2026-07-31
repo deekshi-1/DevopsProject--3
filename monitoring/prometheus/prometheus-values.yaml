@@ -1,74 +1,94 @@
 defaultRules:
-  create: true
-  rules:
-    # Disable noisy default rules
-    alertmanager: false
-    etcd: false
-    kubeControllerManager: false
-    kubeScheduler: false
-    kubeProxy: false
-    kubeApiserverAvailability: false
-    kubeApiserverBurnrate: false
-    kubeApiserverSlos: false
-    kubePrometheusGeneral: false
-    kubePrometheusNodeRecording: false
-    kubernetesSystem: false
-    kubernetesSystemControllerManager: false
-    kubernetesSystemScheduler: false
-    node: false
-    nodeExporterRecording: false
-    prometheus: false
-    prometheusOperator: false
+  create: false
 
 
+# Alertmanager for notifications
 alertmanager:
   enabled: true
 
 
+# Kubernetes object metrics
 kubeStateMetrics:
   enabled: true
 
 
+# Node metrics (CPU, memory, filesystem, network)
 nodeExporter:
   enabled: true
 
 
+# Prometheus configuration
+prometheus:
+  enabled: true
+
+  prometheusSpec:
+    retention: 7d
+
+    # Discover only explicitly selected rules
+    ruleSelector:
+      matchLabels: {}
+
+    # Discover ServiceMonitors automatically
+    serviceMonitorSelector: {}
+
+    # Discover PodMonitors automatically
+    podMonitorSelector: {}
+
+    storageSpec: {}
+
+
+# Disable persistent storage
+# (useful for lab/dev clusters)
 server:
   persistentVolume:
     enabled: false
 
 
+# Your custom Prometheus rules
 additionalPrometheusRulesMap:
+
   capstone-alerts:
+
     groups:
+
       - name: capstone-alerts
+
         rules:
 
-        - alert: HighCPUUsage
-          expr: |
-            100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
-          for: 5m
-          labels:
-            severity: warning
-          annotations:
-            summary: High CPU usage detected
+          # CPU usage > 85% for 5 minutes
+          - alert: HighCPUUsage
+            expr: |
+              100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: High CPU usage detected
+              description: Node CPU usage is above 85% for more than 5 minutes.
 
 
-        - alert: PodCrashLoopBackOff
-          expr: |
-            rate(kube_pod_container_status_restarts_total[5m]) > 0
-          for: 5m
-          labels:
-            severity: critical
-          annotations:
-            summary: Pod restarting
+          # Container restart detection
+          - alert: PodCrashLoopBackOff
+            expr: |
+              rate(kube_pod_container_status_restarts_total[5m]) > 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: Pod restarting
+              description: A container has restarted recently.
 
 
-        - alert: NodeNotReady
-          expr: |
-            kube_node_status_condition{condition="Ready",status="true"} == 0
-          for: 5m
-          labels:
-            severity: critical
-          annotations:
-            summary: Kubernetes node not ready
+          # Node readiness check
+          - alert: NodeNotReady
+            expr: |
+              kube_node_status_condition{
+                condition="Ready",
+                status="true"
+              } == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: Kubernetes node not ready
+              description: A Kubernetes node has been NotReady for more than 5 minutes.
