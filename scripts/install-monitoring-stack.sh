@@ -24,7 +24,7 @@ echo "Deploying Prometheus..."
 helm upgrade --install prometheus \
 prometheus-community/prometheus \
 --namespace monitoring \
--f ../monitoring/prometheus/prometheus-values.yaml
+-f monitoring/prometheus/prometheus-values.yaml
 
 
 echo "Deploying Grafana..."
@@ -32,7 +32,7 @@ echo "Deploying Grafana..."
 helm upgrade --install grafana \
 grafana/grafana \
 --namespace monitoring \
--f ../monitoring/grafana/grafana-values.yaml
+-f monitoring/grafana/grafana-values.yaml
 
 
 echo "Monitoring stack deployed successfully!"
