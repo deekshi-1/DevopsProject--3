@@ -139,6 +139,25 @@ pipeline {
             }
         }
 
+        stage('Monitoring Verification') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        kubectl get pods -n monitoring
+
+                        kubectl get servicemonitor -n monitoring
+
+                        kubectl get pods
+                    '''
+                }
+            }
+        }
+
         stage('Rollout Verification') {
             steps {
                 withCredentials([

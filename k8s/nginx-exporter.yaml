@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-exporter
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-exporter
+
+  template:
+    metadata:
+      labels:
+        app: nginx-exporter
+
+    spec:
+      containers:
+      - name: nginx-exporter
+        image: nginx/nginx-prometheus-exporter:latest
+
+        args:
+        - -nginx.scrape-uri=http://capstone-nginx-service:80/nginx_status
+
+        ports:
+        - containerPort: 9113

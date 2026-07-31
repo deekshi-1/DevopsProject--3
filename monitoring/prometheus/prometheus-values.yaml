@@ -1,28 +1,47 @@
 alertmanager:
   enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
+
+server:
+  persistentVolume:
+    enabled: false
+
 serverFiles:
   alerts:
     groups:
       - name: capstone-alerts
         rules:
-          - alert: HighCPUUsage
-            expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
-            for: 5m
-            labels:
-              severity: warning
-            annotations:
-              summary: "High CPU Usage on {{ $labels.instance }}"
-          - alert: PodCrashLoopBackOff
-            expr: rate(kube_pod_container_status_restarts_total[5m]) > 0
-            for: 5m
-            labels:
-              severity: critical
-            annotations:
-              summary: "Pod {{ $labels.pod }} is restarting constantly"
-          - alert: NodeNotReady
-            expr: kube_node_status_condition{condition="Ready",status="true"} == 0
-            for: 5m
-            labels:
-              severity: critical
-            annotations:
-              summary: "Kubernetes Node {{ $labels.node }} is not ready"
+
+        - alert: HighCPUUsage
+          expr: |
+            100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: High CPU usage detected
+
+
+        - alert: PodCrashLoopBackOff
+          expr: |
+            rate(kube_pod_container_status_restarts_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Pod restarting
+
+
+        - alert: NodeNotReady
+          expr: |
+            kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Kubernetes node not ready
