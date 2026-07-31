@@ -32,9 +32,17 @@ pipeline {
                     def scannerHome = tool "SonarScanner"
 
                     withSonarQubeEnv("SonarQube") {
-                        sh """
-                            ${scannerHome}/bin/sonar-scanner
-                        """
+                        withCredentials([
+                            string(
+                                credentialsId: 'sonar-token',
+                                variable: 'SONAR_TOKEN'
+                            )
+                        ]) {
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.token=$SONAR_TOKEN
+                            """
+                        }
                     }
                 }
             }
@@ -52,7 +60,7 @@ pipeline {
             steps {
                 sh """
                     docker build \
-                    -t ${IMAGE_NAME}:${BUILD_NUMBER} .
+                        -t ${IMAGE_NAME}:${BUILD_NUMBER} .
                 """
             }
         }
@@ -61,9 +69,9 @@ pipeline {
             steps {
                 sh """
                     trivy image \
-                    --severity HIGH,CRITICAL \
-                    --exit-code 1 \
-                    ${IMAGE_NAME}:${BUILD_NUMBER}
+                        --severity HIGH,CRITICAL \
+                        --exit-code 1 \
+                        ${IMAGE_NAME}:${BUILD_NUMBER}
                 """
             }
         }
@@ -79,8 +87,8 @@ pipeline {
                 ]) {
                     sh '''
                         echo "$DOCKER_PASSWORD" | docker login \
-                        -u "$DOCKER_USERNAME" \
-                        --password-stdin
+                            -u "$DOCKER_USERNAME" \
+                            --password-stdin
 
                         docker tag $IMAGE_NAME:$BUILD_NUMBER $IMAGE_NAME:latest
                         docker push $IMAGE_NAME:$BUILD_NUMBER
@@ -104,13 +112,16 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 withCredentials([
-                    file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')
+                    file(
+                        credentialsId: 'kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
                 ]) {
                     sh '''
                         kubectl apply -f k8s/
 
                         kubectl set image deployment/capstone-nginx-app \
-                        nginx-container=$IMAGE_NAME:latest
+                            nginx-container=$IMAGE_NAME:latest
                     '''
                 }
             }
@@ -119,7 +130,10 @@ pipeline {
         stage('Rollout Verification') {
             steps {
                 withCredentials([
-                    file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')
+                    file(
+                        credentialsId: 'kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
                 ]) {
                     sh '''
                         kubectl rollout status deployment/capstone-nginx-app
