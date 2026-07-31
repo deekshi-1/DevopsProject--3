@@ -34,14 +34,22 @@ pipeline {
 
                     withSonarQubeEnv("SonarQube") {
 
-                        sh """
-                            ${scannerHome}/bin/sonar-scanner
-                        """
+                        withCredentials([
+                            string(
+                                credentialsId: 'sonar-token',
+                                variable: 'SONAR_TOKEN'
+                            )
+                        ]) {
+
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                    -Dsonar.login=$SONAR_TOKEN
+                            """
+                        }
                     }
                 }
             }
         }
-
 
         stage("SonarQube Quality Gate") {
             steps {
