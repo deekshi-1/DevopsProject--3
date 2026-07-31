@@ -22,8 +22,8 @@ helm upgrade --install kube-prometheus-stack \
   --create-namespace \
   -f monitoring/prometheus/prometheus-values.yaml \
   --set grafana.enabled=false \
-  --set prometheus.service.type=NodePort \
-  --set prometheus.service.nodePort=32090 \
+    --set prometheus.service.type=NodePort \
+    --set prometheus.service.nodePort=32090 \
   --wait
 
 echo "Creating Grafana dashboard ConfigMap..."
