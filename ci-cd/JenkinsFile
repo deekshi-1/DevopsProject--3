@@ -107,10 +107,17 @@ pipeline {
 
         stage('Deploy Monitoring Stack') {
             steps {
-                sh '''
-                    chmod +x scripts/install-monitoring-stack.sh
-                    ./scripts/install-monitoring-stack.sh
-                '''
+                withCredentials([
+                    file(
+                        credentialsId: 'kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        chmod +x scripts/install-monitoring-stack.sh
+                        ./scripts/install-monitoring-stack.sh
+                    '''
+                }
             }
         }
 
